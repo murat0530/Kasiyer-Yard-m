@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kasiyer">
+<meta name="theme-color" content="#F2F2F7">
+<title>Kasiyer Asistanı</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── ANA SAYFA ── -->
+  <div id="page-home" class="page active">
+    <div class="nav"><h1>Kasiyer Asistanı</h1></div>
+    <div class="scroll">
+      <div class="voice-wrap">
+        <button id="voice-btn" class="voice-btn" onclick="toggleVoice()">
+          <span id="voice-mic" class="mic">🎤</span>
+          <span id="voice-lbl" class="voice-lbl">Sesli Komut</span>
+          <span class="voice-hint">Örnek: "çin", "pound", "riyal", "euro"</span>
+        </button>
+        <div id="voice-out" class="voice-out"></div>
+      </div>
+      <div class="grid">
+        <button class="tile bl" onclick="showPage('currency')">
+          <span class="tile-ic">💱</span>
+          <span class="tile-lb">Döviz Kurları</span>
+        </button>
+        <button class="tile or" onclick="showPage('calc')">
+          <span class="tile-ic">🧮</span>
+          <span class="tile-lb">Hesap Makinesi</span>
+        </button>
+        <button class="tile gr" onclick="showPage('translate')">
+          <span class="tile-ic">🌍</span>
+          <span class="tile-lb">Hızlı Çeviri</span>
+        </button>
+        <button class="tile pu" onclick="showPage('products')">
+          <span class="tile-ic">🏷️</span>
+          <span class="tile-lb">Ürün / Fiyat</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DÖVİZ LİSTESİ ── -->
+  <div id="page-currency" class="page">
+    <div class="nav"><h1>Para Birimleri</h1></div>
+    <div class="scroll" id="currency-list"></div>
+  </div>
+
+  <!-- ── DÖVİZ DETAY ── -->
+  <div id="page-detail" class="page">
+    <div class="nav">
+      <button class="back" onclick="goBack()">‹ Geri</button>
+      <h1 id="detail-title">Detay</h1>
+    </div>
+    <div class="scroll" id="detail-body"></div>
+  </div>
+
+  <!-- ── HESAP MAKİNESİ ── -->
+  <div id="page-calc" class="page">
+    <div class="nav"><h1>Hesap Makinesi</h1></div>
+    <div class="scroll">
+      <div class="calc-wrap">
+        <div class="inp-card">
+          <div class="inp-lbl">Para Birimi Seç</div>
+          <div class="chips" id="calc-chips"></div>
+        </div>
+        <div class="inp-card">
+          <div class="inp-lbl">Miktar</div>
+          <input id="calc-amount" class="inp-field" type="number" inputmode="decimal" placeholder="0.00">
+        </div>
+        <div class="inp-card">
+          <div id="rate-label" class="inp-lbl">Kur (TL karşılığı)</div>
+          <input id="calc-rate" class="inp-field" type="number" inputmode="decimal" placeholder="0.00">
+        </div>
+        <button class="calc-go" onclick="calculate()">Hesapla</button>
+        <div id="calc-result" class="result" style="display:none">
+          <div id="res-from" class="res-from"></div>
+          <div class="res-arr">↓</div>
+          <div id="res-val" class="res-val"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ÇEVİRİ ── -->
+  <div id="page-translate" class="page">
+    <div class="nav"><h1>Hızlı Çeviri</h1></div>
+    <div class="scroll" id="translate-body"></div>
+  </div>
+
+  <!-- ── ÜRÜNLER ── -->
+  <div id="page-products" class="page">
+    <div class="nav">
+      <h1>Ürün / Fiyat</h1>
+      <button class="nav-btn" onclick="toggleAddForm()">+</button>
+    </div>
+    <div class="scroll">
+      <div class="prod-wrap">
+        <div id="add-form" class="add-form">
+          <div class="fg">
+            <div class="fl">Ürün Adı</div>
+            <input id="prod-name" class="fi" type="text" placeholder="Örn: Çanta, Saat...">
+          </div>
+          <div class="fg">
+            <div class="fl">Fiyat</div>
+            <div class="row">
+              <input id="prod-price" class="fi" type="number" inputmode="decimal" placeholder="0.00">
+              <select id="prod-currency" class="fs">
+                <option>TRY</option>
+                <option>USD</option><option>EUR</option><option>GBP</option>
+                <option>CNY</option><option>JPY</option><option>AUD</option>
+                <option>CAD</option><option>CHF</option><option>SAR</option>
+              </select>
+            </div>
+          </div>
+          <div class="fa">
+            <button class="bs" onclick="toggleAddForm()">İptal</button>
+            <button class="bp" onclick="saveProduct()">Ekle</button>
+          </div>
+        </div>
+        <div id="prod-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── TAB BAR ── -->
+<nav class="tabs">
+  <button class="tab on" onclick="showPage('home')">
+    <span class="tab-ic">🏠</span><span class="tab-lb">Ana Sayfa</span>
+  </button>
+  <button class="tab" onclick="showPage('currency')">
+    <span class="tab-ic">💱</span><span class="tab-lb">Döviz</span>
+  </button>
+  <button class="tab" onclick="showPage('calc')">
+    <span class="tab-ic">🧮</span><span class="tab-lb">Hesapla</span>
+  </button>
+  <button class="tab" onclick="showPage('translate')">
+    <span class="tab-ic">🌍</span><span class="tab-lb">Çeviri</span>
+  </button>
+  <button class="tab" onclick="showPage('products')">
+    <span class="tab-ic">🏷️</span><span class="tab-lb">Ürünler</span>
+  </button>
+</nav>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
