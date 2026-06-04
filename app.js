@@ -76,41 +76,62 @@ function lightenColor(hex, amount) {
   return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
 }
 
-function makeSlide(b, isValid, c) {
-  const imgEl = b.img
-    ? `<img class="bn-photo" src="${b.img}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-    : '';
-  const placeholderStyle = b.img
-    ? 'display:none'
-    : '';
-  const c2 = lightenColor(c.color, 60);
-  const placeholder = `<div class="bn-placeholder" style="${placeholderStyle};--ph-c1:${c.color};--ph-c2:${c2}">
-    <span class="ph-flag">${c.flag}</span>
-    <span class="ph-amt">${b.note}</span>
+function makePhotoEl(imgSrc, fallbackFlag, fallbackAmt, color, isBack) {
+  const c2 = lightenColor(color, 60);
+  const label = isBack ? 'Arka Yüz' : 'Ön Yüz';
+  if (imgSrc) {
+    return `<div class="bn-img-wrap">
+      <img class="bn-photo" src="${imgSrc}" loading="lazy"
+        onerror="this.parentElement.querySelector('.bn-placeholder').style.display='flex';this.style.display='none'">
+      <div class="bn-placeholder" style="display:none;--ph-c1:${color};--ph-c2:${c2}">
+        <span class="ph-flag">${fallbackFlag}</span>
+        <span class="ph-amt">${fallbackAmt}</span>
+      </div>
+      <div class="bn-side-label">${label}</div>
+    </div>`;
+  }
+  return `<div class="bn-img-wrap">
+    <div class="bn-placeholder" style="--ph-c1:${color};--ph-c2:${c2}">
+      <span class="ph-flag">${fallbackFlag}</span>
+      <span class="ph-amt">${fallbackAmt}</span>
+    </div>
+    <div class="bn-side-label">${label}</div>
   </div>`;
+}
 
-  const invalidOverlay = !isValid ? `
-    <div class="bn-invalid-overlay">
-      <div class="bn-invalid-stamp">✕</div>
-      <div class="bn-invalid-label">GEÇERSİZ</div>
-    </div>` : '';
-
+function makeSlide(b, isValid, c) {
   const badge = isValid
     ? `<span class="bn-valid-badge">✅ Geçerli</span>`
     : `<span class="bn-invalid-badge">❌ Geçersiz</span>`;
+  const warnTag = b.warn ? `<span class="bn-warn-tag">⚠️ ${b.warn}</span>` : '';
+  const invalidOverlay = !isValid
+    ? `<div class="bn-invalid-overlay"><div class="bn-invalid-stamp">✕</div><div class="bn-invalid-label">GEÇERSİZ</div></div>`
+    : '';
 
-  const warnTag = b.warn ? `<div><span class="bn-warn-tag">⚠️ ${b.warn}</span></div>` : '';
-
-  return `<div class="bn-slide">
-    ${imgEl}${placeholder}${invalidOverlay}
+  // Front slide
+  const front = `<div class="bn-slide">
+    ${makePhotoEl(b.img, c.flag, b.note, c.color, false)}
+    ${invalidOverlay}
     <div class="bn-info">
-      <div>
-        <div class="bn-note-name">${b.note}</div>
-        ${warnTag}
-      </div>
+      <div><div class="bn-note-name">${b.note}</div>${warnTag}</div>
       <div class="bn-badges">${badge}</div>
     </div>
   </div>`;
+
+  // Back slide (only if imgb exists or both are null show one slide)
+  const hasBack = b.imgb !== undefined;
+  if (!hasBack) return front;
+
+  const back = `<div class="bn-slide">
+    ${makePhotoEl(b.imgb, c.flag, b.note + ' arka', c.color, true)}
+    ${invalidOverlay}
+    <div class="bn-info">
+      <div><div class="bn-note-name">${b.note} — Arka</div>${warnTag}</div>
+      <div class="bn-badges">${badge}</div>
+    </div>
+  </div>`;
+
+  return front + back;
 }
 
 function makeCarousel(notes, isValid, c, idPrefix) {
@@ -118,13 +139,15 @@ function makeCarousel(notes, isValid, c, idPrefix) {
   const id = idPrefix + '_car';
   const dotsId = idPrefix + '_dots';
   const slides = notes.map(b => makeSlide(b, isValid, c)).join('');
-  const dots = notes.map((_, i) =>
-    `<div class="bn-dot ${i === 0 ? 'on' : ''}" data-i="${i}"></div>`
+  // Count total slides (each note with imgb = 2 slides)
+  const totalSlides = notes.reduce((n, b) => n + (b.imgb !== undefined ? 2 : 1), 0);
+  const dots = Array.from({length: totalSlides}, (_, i) =>
+    `<div class="bn-dot ${i === 0 ? 'on' : ''}"></div>`
   ).join('');
 
   return `
     <div class="bn-carousel" id="${id}" onscroll="updateDots('${id}','${dotsId}')">${slides}</div>
-    ${notes.length > 1 ? `<div class="bn-dots" id="${dotsId}">${dots}</div>` : ''}`;
+    ${totalSlides > 1 ? `<div class="bn-dots" id="${dotsId}">${dots}</div>` : ''}`;
 }
 
 function updateDots(carId, dotsId) {
