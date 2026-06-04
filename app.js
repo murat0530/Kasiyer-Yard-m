@@ -1,7 +1,6 @@
 // ── State ──────────────────────────────────────────────
-let currentPage = 'home';
-let prevPage = null;
-let selectedCurrency = null;
+let currentTab = 'home';
+let detailOpen = false;
 let calcCurrency = CURRENCIES[3]; // USD default
 let products = JSON.parse(localStorage.getItem('products') || '[]');
 let recognition = null;
@@ -16,45 +15,47 @@ document.addEventListener('DOMContentLoaded', () => {
   initSpeech();
 });
 
-// ── Navigation ─────────────────────────────────────────
-function showPage(id, currency) {
-  if (id === 'detail') {
-    selectedCurrency = currency;
-    buildDetail(currency);
-  }
+// ── Tab navigation (instant, no animation) ─────────────
+function showTab(id) {
+  // Close detail if open
+  if (detailOpen) closeDetail();
 
-  const prev = document.getElementById('page-' + currentPage);
-  const next = document.getElementById('page-' + id);
-  if (!next || next === prev) return;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
 
-  prev.classList.remove('active');
-  prev.classList.add('behind');
-  next.classList.add('active');
-  next.classList.remove('behind');
-
-  prevPage = currentPage;
-  currentPage = id;
-
-  // Update tab bar
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   const tabs = ['home', 'currency', 'calc', 'translate', 'products'];
-  const tabIdx = tabs.indexOf(id);
-  if (tabIdx !== -1) {
-    document.querySelectorAll('.tab')[tabIdx].classList.add('on');
-  }
+  document.querySelectorAll('.tab')[tabs.indexOf(id)]?.classList.add('on');
+
+  currentTab = id;
 }
 
-function goBack() {
-  if (prevPage) showPage(prevPage);
+// ── Detail navigation (slide in/out) ───────────────────
+function openDetail(currency) {
+  buildDetail(currency);
+  document.getElementById('page-detail').classList.add('open');
+  detailOpen = true;
 }
+
+function closeDetail() {
+  document.getElementById('page-detail').classList.remove('open');
+  detailOpen = false;
+}
+
+// Legacy aliases used in onclick
+function showPage(id, currency) {
+  if (id === 'detail') { openDetail(currency); return; }
+  showTab(id);
+}
+function goBack() { closeDetail(); }
 
 // ── Currency List ──────────────────────────────────────
 function buildCurrencyList() {
   const el = document.getElementById('currency-list');
   el.innerHTML = '<div class="cur-list">' +
-    CURRENCIES.map(c => {
+    CURRENCIES.map((c, i) => {
       const inv = c.invalid.length;
-      return `<button class="cur-item" onclick="showPage('detail', CURRENCIES[${CURRENCIES.indexOf(c)}])">
+      return `<button class="cur-item" onclick="openDetail(CURRENCIES[${i}])">
         <span class="flag">${c.flag}</span>
         <div class="cur-info">
           <div class="cur-code">${c.code}</div>
@@ -66,21 +67,49 @@ function buildCurrencyList() {
     }).join('') + '</div>';
 }
 
-// ── Currency Detail ────────────────────────────────────
+// ── Currency Detail with visual banknote cards ──────────
+function lightenColor(hex, amount) {
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xFF) + amount);
+  const b = Math.min(255, (num & 0xFF) + amount);
+  return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
 function buildDetail(c) {
-  document.getElementById('detail-title').textContent = c.nameTR || c.name;
+  document.getElementById('detail-title').textContent = c.code;
 
-  const validRows = c.valid.map(b => `
-    <div class="bn-row">
-      <span class="bn-ic">✅</span>
-      <div><div class="bn-name">${b.note}</div>${b.warn ? `<div class="bn-warn">⚠️ ${b.warn}</div>` : ''}</div>
-    </div>`).join('');
+  const color2 = lightenColor(c.color, 55);
 
-  const invalidRows = c.invalid.map(b => `
-    <div class="bn-row">
-      <span class="bn-ic">❌</span>
-      <div><div class="bn-name">${b.note}</div>${b.warn ? `<div class="bn-warn">${b.warn}</div>` : ''}</div>
-    </div>`).join('');
+  const makeCard = (b, isValid) => {
+    const warnHtml = b.warn
+      ? `<div class="bn-warn-badge">${b.warn}</div>`
+      : `<div></div>`;
+    if (isValid) {
+      return `<div class="bn-card valid" style="--cur-color:${c.color};--cur-color2:${color2}">
+        <div class="bn-top">
+          <div class="bn-amount">${b.note}</div>
+          <span class="bn-flag-sm">${c.flag}</span>
+        </div>
+        <div class="bn-bottom">
+          ${warnHtml}
+          <span class="bn-status">${b.warn ? '⚠️' : '✅'}</span>
+        </div>
+      </div>`;
+    } else {
+      return `<div class="bn-card invalid">
+        <div class="bn-x">✕</div>
+        <div class="bn-top">
+          <div class="bn-amount">${b.note}</div>
+          <span class="bn-flag-sm">${c.flag}</span>
+        </div>
+        <div class="bn-bottom">
+          <div class="bn-warn-badge">${b.warn || 'Geçersiz'}</div>
+          <span class="bn-status">❌</span>
+        </div>
+      </div>`;
+    }
+  };
 
   document.getElementById('detail-body').innerHTML = `
     <div class="det-head">
@@ -91,9 +120,18 @@ function buildDetail(c) {
         <div class="det-sym">${c.symbol}</div>
       </div>
     </div>
-    ${c.valid.length ? `<div class="sec-card"><div class="sec-hd g">✅ Geçerli Banknotlar</div>${validRows}</div>` : ''}
-    ${c.invalid.length ? `<div class="sec-card"><div class="sec-hd r">❌ Geçersiz / Dikkat</div>${invalidRows}</div>` : ''}
-    <div style="height:16px"></div>`;
+
+    ${c.valid.length ? `
+      <div class="bn-sec-hd">✅ Geçerli Banknotlar</div>
+      <div class="bn-grid">${c.valid.map(b => makeCard(b, true)).join('')}</div>
+    ` : ''}
+
+    ${c.invalid.length ? `
+      <div class="bn-sec-hd">❌ Geçersiz / Dikkat</div>
+      <div class="bn-grid">${c.invalid.map(b => makeCard(b, false)).join('')}</div>
+    ` : ''}
+
+    <div style="height:20px"></div>`;
 }
 
 // ── Calculator ─────────────────────────────────────────
@@ -124,9 +162,8 @@ function calculate() {
   const amt = parseFloat(document.getElementById('calc-amount').value.replace(',', '.'));
   const rate = parseFloat(document.getElementById('calc-rate').value.replace(',', '.'));
   if (isNaN(amt) || isNaN(rate)) return;
-  const res = (amt * rate).toFixed(2);
   document.getElementById('res-from').textContent = `${amt} ${calcCurrency.code}`;
-  document.getElementById('res-val').textContent = `${res} ₺`;
+  document.getElementById('res-val').textContent = `${(amt * rate).toFixed(2)} ₺`;
   const el = document.getElementById('calc-result');
   el.style.display = 'block';
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -134,13 +171,12 @@ function calculate() {
 
 // ── Translation ─────────────────────────────────────────
 function buildTranslation() {
-  const el = document.getElementById('translate-body');
-  el.innerHTML = PHRASES.map(sec => `
+  document.getElementById('translate-body').innerHTML = PHRASES.map(sec => `
     <div class="tr-section">
       <div class="tr-hd">${sec.flag} ${sec.lang}</div>
       <div class="tr-card">
         ${sec.items.map(p => `
-          <div class="ph-row" onclick="copyPhrase(this, '${p.native.replace(/'/g,"\\'")}')">
+          <div class="ph-row" onclick="copyPhrase(this,'${p.native.replace(/'/g,"\\'")}')">
             <div style="flex:1">
               <div class="ph-tr">${p.tr}</div>
               <div class="ph-native">${p.native}</div>
@@ -184,9 +220,7 @@ function buildProductList() {
 function toggleAddForm() {
   const f = document.getElementById('add-form');
   f.classList.toggle('show');
-  if (f.classList.contains('show')) {
-    document.getElementById('prod-name').focus();
-  }
+  if (f.classList.contains('show')) document.getElementById('prod-name').focus();
 }
 
 function saveProduct() {
@@ -212,7 +246,7 @@ function deleteProduct(i) {
 function initSpeech() {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Rec) {
-    document.querySelector('.voice-hint').textContent = 'Sesli komut bu tarayıcıda desteklenmiyor';
+    document.querySelector('.voice-hint').textContent = 'Bu tarayıcıda sesli komut desteklenmiyor';
     return;
   }
   recognition = new Rec();
@@ -226,7 +260,8 @@ function initSpeech() {
     for (const c of CURRENCIES) {
       if (c.keywords.some(k => text.includes(k))) {
         stopListening();
-        setTimeout(() => showPage('detail', c), 300);
+        showTab('currency');
+        setTimeout(() => openDetail(c), 100);
         return;
       }
     }
@@ -236,9 +271,7 @@ function initSpeech() {
   recognition.onerror = () => stopListening();
 }
 
-function toggleVoice() {
-  listening ? stopListening() : startListening();
-}
+function toggleVoice() { listening ? stopListening() : startListening(); }
 
 function startListening() {
   if (!recognition) return;
@@ -247,7 +280,7 @@ function startListening() {
   document.getElementById('voice-mic').textContent = '🔴';
   document.getElementById('voice-lbl').textContent = 'Dinliyorum...';
   document.getElementById('voice-out').textContent = '';
-  try { recognition.start(); } catch (e) {}
+  try { recognition.start(); } catch(e) {}
 }
 
 function stopListening() {
@@ -255,5 +288,5 @@ function stopListening() {
   document.getElementById('voice-btn').classList.remove('on');
   document.getElementById('voice-mic').textContent = '🎤';
   document.getElementById('voice-lbl').textContent = 'Sesli Komut';
-  try { recognition.stop(); } catch (e) {}
+  try { recognition.stop(); } catch(e) {}
 }
