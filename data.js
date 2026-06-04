@@ -48,17 +48,10 @@ const CURRENCIES = [
     color: '#2E7D32',
     keywords: ['dolar', 'amerikan', 'usd'],
     valid: [
-      { note: '$1',   img: 'img/usd1.jpg',   imgb: 'img/usd1b.jpg' },
-      { note: '$5',   img: 'img/usd5.jpg',   imgb: 'img/usd5b.jpg' },
-      { note: '$10',  img: 'img/usd10.jpg',  imgb: 'img/usd10b.jpg' },
-      { note: '$20',  img: 'img/usd20.jpg',  imgb: 'img/usd20b.jpg' },
-      { note: '$50',  img: 'img/usd50.jpg',  imgb: 'img/usd50b.jpg' },
-      { note: '$100', img: 'img/usd100.jpg', imgb: 'img/usd100b.jpg' },
-      { note: '$2',   img: null, imgb: null,  warn: 'Nadir, dikkat' },
+      { note: '$1', img: 'img/usd1.jpg', imgb: 'img/usd1b.jpg' },
+      { note: '$2', img: 'img/usd2.jpg', imgb: 'img/usd2b.jpg', warn: 'Nadir, dikkat et' },
     ],
-    invalid: [
-      { note: '$100 pre-2013', img: null, warn: 'Güvenlik şeridi yok, almayın' },
-    ]
+    invalid: []
   },
   {
     code: 'CHF', name: 'İsviçre Frangı', symbol: 'Fr.', flag: '🇨🇭',
@@ -95,7 +88,6 @@ const CURRENCIES = [
     color: '#006C35',
     keywords: ['riyal', 'suudi', 'sar', 'arabistan'],
     valid: [
-      { note: '﷼1',   img: null,             imgb: null },
       { note: '﷼5',   img: 'img/sar5.png',   imgb: null },
       { note: '﷼10',  img: 'img/sar10.png',  imgb: null },
       { note: '﷼50',  img: 'img/sar50.png',  imgb: null },
