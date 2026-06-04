@@ -67,7 +67,7 @@ function buildCurrencyList() {
     }).join('') + '</div>';
 }
 
-// ── Currency Detail with visual banknote cards ──────────
+// ── Currency Detail with swipeable photo carousel ──────
 function lightenColor(hex, amount) {
   const num = parseInt(hex.replace('#',''), 16);
   const r = Math.min(255, (num >> 16) + amount);
@@ -76,40 +76,70 @@ function lightenColor(hex, amount) {
   return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
 }
 
+function makeSlide(b, isValid, c) {
+  const imgEl = b.img
+    ? `<img class="bn-photo" src="${b.img}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  const placeholderStyle = b.img
+    ? 'display:none'
+    : '';
+  const c2 = lightenColor(c.color, 60);
+  const placeholder = `<div class="bn-placeholder" style="${placeholderStyle};--ph-c1:${c.color};--ph-c2:${c2}">
+    <span class="ph-flag">${c.flag}</span>
+    <span class="ph-amt">${b.note}</span>
+  </div>`;
+
+  const invalidOverlay = !isValid ? `
+    <div class="bn-invalid-overlay">
+      <div class="bn-invalid-stamp">✕</div>
+      <div class="bn-invalid-label">GEÇERSİZ</div>
+    </div>` : '';
+
+  const badge = isValid
+    ? `<span class="bn-valid-badge">✅ Geçerli</span>`
+    : `<span class="bn-invalid-badge">❌ Geçersiz</span>`;
+
+  const warnTag = b.warn ? `<div><span class="bn-warn-tag">⚠️ ${b.warn}</span></div>` : '';
+
+  return `<div class="bn-slide">
+    ${imgEl}${placeholder}${invalidOverlay}
+    <div class="bn-info">
+      <div>
+        <div class="bn-note-name">${b.note}</div>
+        ${warnTag}
+      </div>
+      <div class="bn-badges">${badge}</div>
+    </div>
+  </div>`;
+}
+
+function makeCarousel(notes, isValid, c, idPrefix) {
+  if (!notes.length) return '';
+  const id = idPrefix + '_car';
+  const dotsId = idPrefix + '_dots';
+  const slides = notes.map(b => makeSlide(b, isValid, c)).join('');
+  const dots = notes.map((_, i) =>
+    `<div class="bn-dot ${i === 0 ? 'on' : ''}" data-i="${i}"></div>`
+  ).join('');
+
+  return `
+    <div class="bn-carousel" id="${id}" onscroll="updateDots('${id}','${dotsId}')">${slides}</div>
+    ${notes.length > 1 ? `<div class="bn-dots" id="${dotsId}">${dots}</div>` : ''}`;
+}
+
+function updateDots(carId, dotsId) {
+  const car = document.getElementById(carId);
+  const dots = document.getElementById(dotsId);
+  if (!car || !dots) return;
+  const slideW = car.firstElementChild?.offsetWidth + 12 || 1;
+  const idx = Math.round(car.scrollLeft / slideW);
+  dots.querySelectorAll('.bn-dot').forEach((d, i) =>
+    d.classList.toggle('on', i === idx)
+  );
+}
+
 function buildDetail(c) {
   document.getElementById('detail-title').textContent = c.code;
-
-  const color2 = lightenColor(c.color, 55);
-
-  const makeCard = (b, isValid) => {
-    const warnHtml = b.warn
-      ? `<div class="bn-warn-badge">${b.warn}</div>`
-      : `<div></div>`;
-    if (isValid) {
-      return `<div class="bn-card valid" style="--cur-color:${c.color};--cur-color2:${color2}">
-        <div class="bn-top">
-          <div class="bn-amount">${b.note}</div>
-          <span class="bn-flag-sm">${c.flag}</span>
-        </div>
-        <div class="bn-bottom">
-          ${warnHtml}
-          <span class="bn-status">${b.warn ? '⚠️' : '✅'}</span>
-        </div>
-      </div>`;
-    } else {
-      return `<div class="bn-card invalid">
-        <div class="bn-x">✕</div>
-        <div class="bn-top">
-          <div class="bn-amount">${b.note}</div>
-          <span class="bn-flag-sm">${c.flag}</span>
-        </div>
-        <div class="bn-bottom">
-          <div class="bn-warn-badge">${b.warn || 'Geçersiz'}</div>
-          <span class="bn-status">❌</span>
-        </div>
-      </div>`;
-    }
-  };
 
   document.getElementById('detail-body').innerHTML = `
     <div class="det-head">
@@ -123,12 +153,12 @@ function buildDetail(c) {
 
     ${c.valid.length ? `
       <div class="bn-sec-hd">✅ Geçerli Banknotlar</div>
-      <div class="bn-grid">${c.valid.map(b => makeCard(b, true)).join('')}</div>
+      ${makeCarousel(c.valid, true, c, 'v')}
     ` : ''}
 
     ${c.invalid.length ? `
       <div class="bn-sec-hd">❌ Geçersiz / Dikkat</div>
-      <div class="bn-grid">${c.invalid.map(b => makeCard(b, false)).join('')}</div>
+      ${makeCarousel(c.invalid, false, c, 'iv')}
     ` : ''}
 
     <div style="height:20px"></div>`;
