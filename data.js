@@ -22,7 +22,7 @@ const CURRENCIES = [
     valid: [
       { note: 'A$5',   img: 'img/aud5.jpg',   imgb: 'img/aud5b.jpg' },
       { note: 'A$10',  img: 'img/aud10.jpg',  imgb: 'img/aud10b.jpg' },
-      { note: 'A$20',  img: null,              imgb: null },
+      { note: 'A$20',  img: 'img/aud20.jpg',  imgb: 'img/aud20b.jpg' },
       { note: 'A$50',  img: 'img/aud50.jpg',  imgb: 'img/aud50b.jpg' },
       { note: 'A$100', img: 'img/aud100.jpg', imgb: 'img/aud100b.jpg' },
     ],
@@ -34,8 +34,8 @@ const CURRENCIES = [
     keywords: ['kanada', 'cad'],
     valid: [
       { note: 'C$5',   img: 'img/cad5.jpg',   imgb: 'img/cad5b.jpg' },
-      { note: 'C$10',  img: null,              imgb: null },
-      { note: 'C$20',  img: null,              imgb: null },
+      { note: 'C$10',  img: 'img/cad10.jpg',  imgb: 'img/cad10b.jpg' },
+      { note: 'C$20',  img: 'img/cad20.jpg',  imgb: null },
       { note: 'C$50',  img: 'img/cad50.png',  imgb: 'img/cad50b.png' },
       { note: 'C$100', img: 'img/cad100.png', imgb: 'img/cad100b.png' },
     ],
